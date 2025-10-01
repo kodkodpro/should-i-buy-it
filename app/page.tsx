@@ -16,7 +16,7 @@ export default function Home() {
   const advice = getAdvice(metrics, score)
 
   return (
-    <div className="min-h-screen p-4 w-full">
+    <div className="min-h-screen p-4 md:py-20 w-full">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 text-center">
@@ -48,9 +48,9 @@ export default function Home() {
                     }
                   />
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (€)</Label>
+                    <Label htmlFor="price">Price after discount (€)</Label>
                     <Input
                       id="price"
                       type="number"
@@ -60,6 +60,24 @@ export default function Home() {
                       value={metrics.price || ""}
                       onChange={(e) =>
                         updateMetric("price", parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="discount">Discount (%)</Label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      placeholder="0"
+                      value={metrics.discountPercentage || ""}
+                      onChange={(e) =>
+                        updateMetric(
+                          "discountPercentage",
+                          parseFloat(e.target.value) || 0,
+                        )
                       }
                     />
                   </div>
@@ -81,48 +99,11 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Discount (%)</Label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      placeholder="0"
-                      value={metrics.discountPercentage || ""}
-                      onChange={(e) =>
-                        updateMetric(
-                          "discountPercentage",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="waitingDays">Days Since First Wanted</Label>
-                    <Input
-                      id="waitingDays"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                      value={metrics.waitingDays || ""}
-                      onChange={(e) =>
-                        updateMetric(
-                          "waitingDays",
-                          parseInt(e.target.value) || 0,
-                        )
-                      }
-                    />
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
             {/* Anti-Impulsivity Metrics Card */}
-            <Card className="border-warning/50">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Info className="h-5 w-5 text-warning" />
@@ -134,6 +115,36 @@ export default function Home() {
                 </Muted>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="waitingDays">Days Since First Wanted</Label>
+                  <Input
+                    id="waitingDays"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={metrics.waitingDays || ""}
+                    onChange={(e) =>
+                      updateMetric("waitingDays", parseInt(e.target.value) || 0)
+                    }
+                  />
+                  {metrics.waitingDays < 7 && metrics.waitingDays >= 0 && (
+                    <div className="mt-2 p-3 rounded-md bg-warning/5 border border-warning/20">
+                      <Muted className="text-xs">
+                        ⏰ Cooling off period: Try waiting{" "}
+                        <strong>{7 - metrics.waitingDays} more day(s)</strong>.
+                        Come back on{" "}
+                        <strong>
+                          {new Date(
+                            Date.now() +
+                              (7 - metrics.waitingDays) * 24 * 60 * 60 * 1000,
+                          ).toLocaleDateString()}
+                        </strong>
+                      </Muted>
+                    </div>
+                  )}
+                </div>
+
                 <MetricSlider
                   label="Research Depth"
                   hint="How much research have you done? (0=none, 10=extensive)"
@@ -157,13 +168,13 @@ export default function Home() {
               <CardContent className="space-y-6">
                 <MetricSlider
                   label="Utility / Life Improvement"
-                  hint="How much will this actually improve your daily life?"
+                  hint="How much will this actually improve your daily life? (0=not at all, 10=very much)"
                   value={metrics.utilityScore}
                   onChange={(value) => updateMetric("utilityScore", value)}
                 />
                 <MetricSlider
                   label="Long-term Value"
-                  hint="Will this provide value for months or years?"
+                  hint="For how long will this provide value? (0=days, 10=years)"
                   value={metrics.longTermValue}
                   onChange={(value) => updateMetric("longTermValue", value)}
                 />
@@ -188,6 +199,18 @@ export default function Home() {
                 <CardTitle>Replacement Item?</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="hasUnusedSimilar"
+                    checked={metrics.hasUnusedSimilar}
+                    onCheckedChange={(checked) =>
+                      updateMetric("hasUnusedSimilar", checked === true)
+                    }
+                  />
+                  <Label htmlFor="hasUnusedSimilar" className="cursor-pointer">
+                    I've bought similar items before that I never use
+                  </Label>
+                </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="isReplacement"
@@ -270,14 +293,23 @@ export default function Home() {
                   <div className="space-y-2 pt-4 border-t">
                     <H3 className="text-base">Personalized Advice</H3>
                     <div className="space-y-2">
-                      {advice.map((tip) => (
-                        <div
-                          key={tip}
-                          className="text-sm px-3 py-2.5 rounded-md font-medium bg-muted/50"
-                        >
-                          {tip}
-                        </div>
-                      ))}
+                      {advice.map((tip, index) => {
+                        const bgClass =
+                          tip.kind === "success"
+                            ? "bg-success/5"
+                            : tip.kind === "danger"
+                              ? "bg-danger/5"
+                              : "bg-warning/7"
+
+                        return (
+                          <div
+                            key={`${tip.emoji}-${index}`}
+                            className={`text-sm px-3 py-2.5 rounded-md font-medium ${bgClass}`}
+                          >
+                            {tip.emoji} {tip.text}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

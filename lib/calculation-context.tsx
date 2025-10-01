@@ -35,6 +35,7 @@ const initialMetrics: PurchaseMetrics = {
   waitingDays: 0,
   researchDepth: 0,
   impulseResistance: 5,
+  hasUnusedSimilar: false,
   
   // Replacement metrics
   isReplacement: false,

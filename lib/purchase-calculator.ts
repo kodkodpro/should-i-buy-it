@@ -19,6 +19,7 @@ export interface PurchaseMetrics {
   waitingDays: number // Days since first wanting this
   researchDepth: number // 0-10: How much research have you done?
   impulseResistance: number // 0-10: How deliberate does this feel? (0=very impulsive, 10=very planned)
+  hasUnusedSimilar: boolean // Have I bought similar items that went unused?
   
   // Optional: For replacements
   isReplacement: boolean
@@ -43,6 +44,7 @@ export const IMPACT_MULTIPLIERS = {
   waitingPeriod: 2.0, // Most important for ADHD
   researchDepth: 1.7,
   impulseResistance: 1.9,
+  unusedSimilarPenalty: 1.5, // Heavy penalty for past unused purchases
   
   // Lower priority
   discount: 0.4, // LOW - discounts trigger impulsivity!
@@ -116,6 +118,7 @@ export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
     waitingDays,
     researchDepth,
     impulseResistance,
+    hasUnusedSimilar,
     isReplacement,
     upgradeJustification,
   } = metrics
@@ -142,6 +145,11 @@ export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
     ? upgradeJustification * IMPACT_MULTIPLIERS.upgrade 
     : 0
 
+  // Heavy penalty if you have unused similar items (applies negative score)
+  const unusedSimilarPenalty = hasUnusedSimilar
+    ? -10 * IMPACT_MULTIPLIERS.unusedSimilarPenalty
+    : 0
+
   // Calculate total weighted score
   const totalWeightedScore =
     weightedAffordability +
@@ -153,7 +161,8 @@ export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
     weightedResearch +
     weightedImpulseControl +
     weightedDiscount +
-    weightedUpgrade
+    weightedUpgrade +
+    unusedSimilarPenalty
 
   // Calculate maximum possible score
   const maxPossibleScore =
@@ -212,54 +221,113 @@ export function getRecommendation(score: number): {
   }
 }
 
+export interface Advice {
+  kind: "success" | "warning" | "danger"
+  emoji: string
+  text: string
+}
+
 /**
  * Gets helpful advice based on the metrics
  */
-export function getAdvice(metrics: PurchaseMetrics, score: number): string[] {
-  const advice: string[] = []
+export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
+  const advice: Advice[] = []
 
   // Waiting period advice
   if (metrics.waitingDays === 0) {
-    advice.push("🚨 You just thought of this! Wait at least 24 hours before buying.")
+    advice.push({
+      kind: "danger",
+      emoji: "🚨",
+      text: "You just thought of this! Wait at least 24 hours before buying.",
+    })
   } else if (metrics.waitingDays < 3) {
-    advice.push("⏰ You've only waited " + metrics.waitingDays + " day(s). Try waiting a full week.")
+    advice.push({
+      kind: "warning",
+      emoji: "⏰",
+      text: `You've only waited ${metrics.waitingDays} day(s). Try waiting a full week.`,
+    })
   } else if (metrics.waitingDays >= 7) {
-    advice.push("✅ Great job waiting " + metrics.waitingDays + " days! Your mind is clearer now.")
+    advice.push({
+      kind: "success",
+      emoji: "✅",
+      text: `Great job waiting ${metrics.waitingDays} days! Your mind is clearer now.`,
+    })
   }
 
   // Research advice
   if (metrics.researchDepth < 4) {
-    advice.push("📚 Do more research! Read reviews, compare alternatives, watch videos.")
+    advice.push({
+      kind: "warning",
+      emoji: "📚",
+      text: "Do more research! Read reviews, compare alternatives, watch videos.",
+    })
   } else if (metrics.researchDepth >= 7) {
-    advice.push("✅ Good research! You've done your homework.")
+    advice.push({
+      kind: "success",
+      emoji: "✅",
+      text: "Good research! You've done your homework.",
+    })
   }
 
   // Impulse control
   if (metrics.impulseResistance < 4) {
-    advice.push("⚠️ This feels very impulsive. That's a red flag for ADHD purchases.")
+    advice.push({
+      kind: "danger",
+      emoji: "⚠️",
+      text: "This feels very impulsive. That's a red flag for ADHD purchases.",
+    })
   } else if (metrics.impulseResistance >= 7) {
-    advice.push("✅ This is a deliberate, planned decision. Good sign!")
+    advice.push({
+      kind: "success",
+      emoji: "✅",
+      text: "This is a deliberate, planned decision. Good sign!",
+    })
   }
 
   // Necessity check
   if (metrics.necessityScore < 5 && score < 60) {
-    advice.push("💭 This is more of a want than a need. Are you okay with that?")
+    advice.push({
+      kind: "warning",
+      emoji: "💭",
+      text: "This is more of a want than a need. Are you okay with that?",
+    })
   }
 
   // Affordability warning
   const priceRatio = metrics.price / metrics.monthlyIncome
   if (priceRatio > 0.2) {
-    advice.push("💰 This costs over 20% of your monthly income. That's significant!")
+    advice.push({
+      kind: "danger",
+      emoji: "💰",
+      text: "This costs over 20% of your monthly income. That's significant!",
+    })
   }
 
   // Discount trap warning
   if (metrics.discountPercentage > 30 && metrics.waitingDays < 2) {
-    advice.push("🎣 Big discount + quick decision = common ADHD impulse trap. Wait!")
+    advice.push({
+      kind: "danger",
+      emoji: "🎣",
+      text: "Big discount + quick decision = common ADHD impulse trap. Wait!",
+    })
   }
 
   // Use frequency
   if (metrics.useFrequency < 5) {
-    advice.push("🤔 You won't use this often. Will it collect dust?")
+    advice.push({
+      kind: "warning",
+      emoji: "🤔",
+      text: "You won't use this often. Will it collect dust?",
+    })
+  }
+
+  // Unused similar items warning
+  if (metrics.hasUnusedSimilar) {
+    advice.push({
+      kind: "danger",
+      emoji: "🚨",
+      text: "You have unused similar purchases! History suggests this may go unused too.",
+    })
   }
 
   return advice

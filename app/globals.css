@@ -122,6 +122,8 @@
 }
 
 @theme inline {
+  --default-border-width: 1.5px;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
