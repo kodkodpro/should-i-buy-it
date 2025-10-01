@@ -44,8 +44,11 @@ export default function RootLayout({
           <CalculationProvider>
             <SidebarProvider>
               <AppSidebar />
-              <main className="flex-1 w-full">
-                <SidebarTrigger />
+              <main className="relative flex-1 w-full">
+                <div className="fixed pt-4 pl-4 z-50">
+                  <SidebarTrigger />
+                </div>
+
                 {children}
               </main>
             </SidebarProvider>

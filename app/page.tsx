@@ -1,111 +1,29 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Info } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { useCalculation } from "@/lib/calculation-context"
 import { H1, H3, Lead, Muted } from "@/lib/components/ui/typography"
-import {
-  calculatePurchaseScore,
-  getRecommendation,
-  type PurchaseMetrics,
-} from "@/lib/purchase-calculator"
-import {
-  deleteCalculation,
-  getCalculationById,
-  saveCalculation,
-} from "@/lib/storage"
-
-const initialMetrics: PurchaseMetrics = {
-  productName: "",
-  price: 0,
-  monthlyIncome: 0,
-  discountPercentage: 0,
-  utilityScore: 5,
-  instantHappinessScore: 5,
-  sustainabilityScore: 5,
-  upgradeJustification: 5,
-  necessityScore: 5,
-}
-
-// Custom event to notify sidebar of storage changes
-function notifyStorageChange() {
-  window.dispatchEvent(new Event("storage-updated"))
-}
+import { getAdvice } from "@/lib/purchase-calculator"
 
 export default function Home() {
-  const { currentId, setCurrentId } = useCalculation()
-  const [metrics, setMetrics] = useState<PurchaseMetrics>(initialMetrics)
-  const [score, setScore] = useState(0)
-  const [recommendation, setRecommendation] = useState(getRecommendation(0))
-
-  // Load calculation when currentId changes
-  useEffect(() => {
-    if (currentId) {
-      const calculation = getCalculationById(currentId)
-      if (calculation) {
-        setMetrics(calculation.metrics)
-      }
-    } else {
-      setMetrics(initialMetrics)
-    }
-  }, [currentId])
-
-  // Recalculate score when metrics change
-  useEffect(() => {
-    const newScore = calculatePurchaseScore(metrics)
-    setScore(newScore)
-    setRecommendation(getRecommendation(newScore))
-  }, [metrics])
-
-  const handleSave = () => {
-    const saved = saveCalculation(metrics, score, currentId)
-    setCurrentId(saved.id)
-    notifyStorageChange()
-    alert("Calculation saved!")
-  }
-
-  const handleDelete = () => {
-    if (!currentId) return
-
-    if (confirm("Are you sure you want to delete this calculation?")) {
-      deleteCalculation(currentId)
-      notifyStorageChange()
-      setCurrentId(undefined)
-    }
-  }
-
-  const handleReset = () => {
-    if (confirm("Are you sure you want to reset all fields?")) {
-      setMetrics(initialMetrics)
-      if (!currentId) {
-        // Only reset the form, don't delete from storage
-        return
-      }
-    }
-  }
-
-  const updateMetric = <K extends keyof PurchaseMetrics>(
-    key: K,
-    value: PurchaseMetrics[K],
-  ) => {
-    setMetrics((prev) => ({ ...prev, [key]: value }))
-  }
+  const { metrics, updateMetric, score, recommendation } = useCalculation()
+  const advice = getAdvice(metrics, score)
 
   return (
-    <div className="min-h-screen p-4 md:p-8 w-full">
+    <div className="min-h-screen p-4 w-full">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 text-center">
           <H1 className="mb-2">Should I Buy It?</H1>
           <Lead>
-            Make smarter purchase decisions based on value, cost and your
-            financial context
+            ADHD-Optimized purchase decisions based on deliberation, not
+            impulsivity
           </Lead>
         </header>
 
@@ -163,69 +81,135 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="discount">Discount (%)</Label>
-                  <Input
-                    id="discount"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    placeholder="0"
-                    value={metrics.discountPercentage || ""}
-                    onChange={(e) =>
-                      updateMetric(
-                        "discountPercentage",
-                        parseFloat(e.target.value) || 0,
-                      )
-                    }
-                  />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="discount">Discount (%)</Label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      placeholder="0"
+                      value={metrics.discountPercentage || ""}
+                      onChange={(e) =>
+                        updateMetric(
+                          "discountPercentage",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="waitingDays">Days Since First Wanted</Label>
+                    <Input
+                      id="waitingDays"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                      value={metrics.waitingDays || ""}
+                      onChange={(e) =>
+                        updateMetric(
+                          "waitingDays",
+                          parseInt(e.target.value) || 0,
+                        )
+                      }
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Metrics Card */}
-            <Card>
+            {/* Anti-Impulsivity Metrics Card */}
+            <Card className="border-warning/50">
               <CardHeader>
-                <CardTitle>Evaluation Metrics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-warning" />
+                  Impulse Control Check
+                </CardTitle>
+                <Muted className="text-xs">
+                  These metrics are crucial for preventing ADHD impulsive
+                  purchases
+                </Muted>
               </CardHeader>
               <CardContent className="space-y-6">
                 <MetricSlider
-                  label="Utility / Life Improvement Score"
+                  label="Research Depth"
+                  hint="How much research have you done? (0=none, 10=extensive)"
+                  value={metrics.researchDepth}
+                  onChange={(value) => updateMetric("researchDepth", value)}
+                />
+                <MetricSlider
+                  label="Impulse Resistance"
+                  hint="How deliberate does this purchase feel? (0=very impulsive, 10=very planned)"
+                  value={metrics.impulseResistance}
+                  onChange={(value) => updateMetric("impulseResistance", value)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Core Value Metrics Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Value Assessment</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <MetricSlider
+                  label="Utility / Life Improvement"
                   hint="How much will this actually improve your daily life?"
                   value={metrics.utilityScore}
                   onChange={(value) => updateMetric("utilityScore", value)}
                 />
                 <MetricSlider
-                  label="Instant Happiness Score"
-                  hint="How much joy will you feel right after buying?"
-                  value={metrics.instantHappinessScore}
-                  onChange={(value) =>
-                    updateMetric("instantHappinessScore", value)
-                  }
+                  label="Long-term Value"
+                  hint="Will this provide value for months or years?"
+                  value={metrics.longTermValue}
+                  onChange={(value) => updateMetric("longTermValue", value)}
                 />
                 <MetricSlider
-                  label="Sustainability Factor"
-                  hint="How long will the happiness last? (1 = days, 10 = years)"
-                  value={metrics.sustainabilityScore}
-                  onChange={(value) =>
-                    updateMetric("sustainabilityScore", value)
-                  }
-                />
-                <MetricSlider
-                  label="Upgrade Justification"
-                  hint="How much better is this compared to what you own?"
-                  value={metrics.upgradeJustification}
-                  onChange={(value) =>
-                    updateMetric("upgradeJustification", value)
-                  }
+                  label="Use Frequency"
+                  hint="How often will you actually use this? (0=rarely, 10=daily)"
+                  value={metrics.useFrequency}
+                  onChange={(value) => updateMetric("useFrequency", value)}
                 />
                 <MetricSlider
                   label="Necessity Factor"
-                  hint="Is it a want or a need? (1 = pure luxury, 10 = essential)"
+                  hint="Is it a want or a need? (1=pure luxury, 10=essential)"
                   value={metrics.necessityScore}
                   onChange={(value) => updateMetric("necessityScore", value)}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Replacement Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Replacement Item?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isReplacement"
+                    checked={metrics.isReplacement}
+                    onCheckedChange={(checked) =>
+                      updateMetric("isReplacement", checked === true)
+                    }
+                  />
+                  <Label htmlFor="isReplacement" className="cursor-pointer">
+                    I'm replacing something I already own
+                  </Label>
+                </div>
+                {metrics.isReplacement && (
+                  <MetricSlider
+                    label="Upgrade Justification"
+                    hint="How much better is this compared to what you own?"
+                    value={metrics.upgradeJustification}
+                    onChange={(value) =>
+                      updateMetric("upgradeJustification", value)
+                    }
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -238,12 +222,14 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div
-                    className={`text-7xl font-bold ${recommendation.colorClass}`}
-                  >
-                    {score}
+                  <div>
+                    <div
+                      className={`text-7xl font-bold ${recommendation.colorClass}`}
+                    >
+                      {score}
+                    </div>
+                    <Muted>out of 100</Muted>
                   </div>
-                  <Muted>out of 100</Muted>
                   <Badge
                     variant={recommendation.variant}
                     className="text-lg px-4 py-2"
@@ -256,48 +242,70 @@ export default function Home() {
                   <H3 className="text-base">Interpretation</H3>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <div className="flex justify-between">
-                      <span>75-100:</span>
+                      <span>80-100:</span>
                       <span className="text-success font-medium">
                         Go for it!
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>60-74:</span>
+                      <span>65-79:</span>
                       <span className="text-info font-medium">
-                        Worth considering
+                        Probably worth it
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>40-59:</span>
+                      <span>45-64:</span>
                       <span className="text-warning font-medium">
-                        Think it over
+                        Wait & think more
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>0-39:</span>
-                      <span className="text-danger font-medium">
-                        Skip this one
-                      </span>
+                      <span>0-44:</span>
+                      <span className="text-danger font-medium">Walk away</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-4 border-t">
+                {advice.length > 0 && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <H3 className="text-base">Personalized Advice</H3>
+                    <div className="space-y-2">
+                      {advice.map((tip) => (
+                        <div
+                          key={tip}
+                          className="text-sm px-3 py-2.5 rounded-md font-medium bg-muted/50"
+                        >
+                          {tip}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* <div className="space-y-2 pt-4 border-t">
                   <H3 className="text-base">Metric Impact</H3>
                   <Muted className="text-xs">
-                    How much each factor influences your final score
+                    How each factor influences your score
                   </Muted>
                   <div className="space-y-2 text-sm mt-3">
                     <div className="flex items-center justify-between">
-                      <span>Utility / Life Improvement</span>
-                      <Badge variant="outline-danger">High Impact</Badge>
+                      <span>Waiting Period</span>
+                      <Badge variant="outline-danger">Highest Impact</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Impulse Resistance</span>
+                      <Badge variant="outline-danger">Highest Impact</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Necessity Factor</span>
                       <Badge variant="outline-danger">High Impact</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Sustainability Factor</span>
+                      <span>Research Depth</span>
+                      <Badge variant="outline-danger">High Impact</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Utility / Value</span>
                       <Badge variant="outline-warning">Medium Impact</Badge>
                     </div>
                     <div className="flex items-center justify-between">
@@ -305,48 +313,14 @@ export default function Home() {
                       <Badge variant="outline-warning">Medium Impact</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Discount Benefit</span>
-                      <Badge variant="outline-success">Low Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Upgrade Justification</span>
-                      <Badge variant="outline-success">Low Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Instant Happiness</span>
+                      <span>Discount</span>
                       <Badge variant="outline-success">Low Impact</Badge>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-end">
-          <Button onClick={handleSave} size="lg" className="sm:min-w-[200px]">
-            {currentId ? "Update" : "Save"} Calculation
-          </Button>
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            size="lg"
-            className="sm:min-w-[200px]"
-          >
-            Reset Form
-          </Button>
-          {currentId && (
-            <Button
-              onClick={handleDelete}
-              variant="destructive"
-              size="lg"
-              className="sm:min-w-[200px]"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
-          )}
         </div>
       </div>
     </div>

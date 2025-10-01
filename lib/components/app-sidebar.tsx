@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, ShoppingCart } from "lucide-react"
+import { Plus, RotateCcw, Save, ShoppingCart, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,14 +22,15 @@ import { getRecommendation } from "@/lib/purchase-calculator"
 import { getSavedCalculations, type SavedCalculation } from "@/lib/storage"
 
 export function AppSidebar() {
-  const { currentId, setCurrentId } = useCalculation()
+  const { currentId, setCurrentId, handleSave, handleReset, handleDelete } =
+    useCalculation()
   const [calculations, setCalculations] = useState<SavedCalculation[]>([])
 
-  const loadCalculations = () => {
-    setCalculations(getSavedCalculations())
-  }
-
   useEffect(() => {
+    const loadCalculations = () => {
+      setCalculations(getSavedCalculations())
+    }
+
     loadCalculations()
 
     const handleStorageChange = () => {
@@ -119,9 +120,38 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 text-xs text-muted-foreground text-center">
-        {calculations.length} saved calculation
-        {calculations.length !== 1 ? "s" : ""}
+      <Separator />
+      <SidebarFooter className="p-4 space-y-2">
+        <Button onClick={handleSave} size="sm" className="w-full">
+          <Save className="mr-2 h-4 w-4" />
+          {currentId ? "Update" : "Save"} Calculation
+        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleReset}
+            variant="outline"
+            size="sm"
+            className="flex-1 shadow-none"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+          {currentId && (
+            <Button
+              onClick={handleDelete}
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground text-center pt-2">
+          {calculations.length} saved calculation
+          {calculations.length !== 1 ? "s" : ""}
+        </div>
       </SidebarFooter>
     </Sidebar>
   )
