@@ -8,7 +8,7 @@ import pluralize from "pluralize"
 export interface PurchaseMetrics {
   productName: string
   price: number
-  monthlyIncome: number
+  freeMonthlyMoney: number // Discretionary income (after taxes, rent, utilities)
   discountPercentage: number
 
   // Core value metrics
@@ -55,23 +55,26 @@ export const IMPACT_MULTIPLIERS = {
 
 /**
  * Calculates affordability score (0-10)
+ * Based on price relative to free monthly money (discretionary income)
+ * Stricter thresholds since this is money AFTER essentials
  */
 export function calculateAffordability(
   price: number,
-  monthlyIncome: number,
+  freeMonthlyMoney: number,
 ): number {
-  if (monthlyIncome <= 0) return 0
+  if (freeMonthlyMoney <= 0) return 0
 
-  const priceRatio = price / monthlyIncome
+  const priceRatio = price / freeMonthlyMoney
 
-  // Score based on percentage of monthly income
-  if (priceRatio <= 0.01) return 10 // Less than 1%
-  if (priceRatio <= 0.05) return 9 // 1-5%
-  if (priceRatio <= 0.1) return 7 // 5-10%
-  if (priceRatio <= 0.2) return 5 // 10-20%
-  if (priceRatio <= 0.3) return 3 // 20-30%
-  if (priceRatio <= 0.5) return 1 // 30-50%
-  return 0
+  // Stricter scoring for discretionary income
+  if (priceRatio <= 0.01) return 10 // Less than 1% - trivial
+  if (priceRatio <= 0.03) return 9 // 1-3% - very affordable
+  if (priceRatio <= 0.05) return 8 // 3-5% - affordable
+  if (priceRatio <= 0.1) return 6 // 5-10% - moderate
+  if (priceRatio <= 0.15) return 4 // 10-15% - significant
+  if (priceRatio <= 0.25) return 2 // 15-25% - very significant
+  if (priceRatio <= 0.5) return 1 // 25-50% - major expense
+  return 0 // Over 50% - unaffordable
 }
 
 /**
@@ -111,7 +114,7 @@ export function calculateImpulseControl(impulseResistance: number): number {
 export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
   const {
     price,
-    monthlyIncome,
+    freeMonthlyMoney,
     discountPercentage,
     utilityScore,
     necessityScore,
@@ -126,7 +129,7 @@ export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
   } = metrics
 
   // Calculate individual components
-  const affordabilityScore = calculateAffordability(price, monthlyIncome)
+  const affordabilityScore = calculateAffordability(price, freeMonthlyMoney)
   const waitingScore = calculateWaitingScore(waitingDays)
   const discountBenefit = calculateDiscountBenefit(discountPercentage)
   const impulseControlScore = calculateImpulseControl(impulseResistance)
@@ -298,12 +301,18 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
   }
 
   // Affordability warning
-  const priceRatio = metrics.price / metrics.monthlyIncome
-  if (priceRatio > 0.2) {
+  const priceRatio = metrics.price / metrics.freeMonthlyMoney
+  if (priceRatio > 0.15) {
     advice.push({
       kind: "danger",
       emoji: "💰",
-      text: "This costs over 20% of your monthly income. That's significant!",
+      text: "This costs over 15% of your free monthly money. That's a major expense!",
+    })
+  } else if (priceRatio > 0.1 && priceRatio <= 0.15) {
+    advice.push({
+      kind: "warning",
+      emoji: "💰",
+      text: "This costs over 10% of your free monthly money. Make sure it's worth it!",
     })
   }
 

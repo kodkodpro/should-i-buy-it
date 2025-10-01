@@ -57,7 +57,7 @@ export default function Home() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price after discount (€)</Label>
+                    <Label htmlFor="price">Price after discount</Label>
                     <Input
                       id="price"
                       type="number"
@@ -89,21 +89,26 @@ export default function Home() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="monthlyIncome">Monthly Income (€)</Label>
+                    <Label htmlFor="freeMonthlyMoney">
+                      Free Monthly Money
+                    </Label>
                     <Input
-                      id="monthlyIncome"
+                      id="freeMonthlyMoney"
                       type="number"
                       min="0"
                       step="0.01"
                       placeholder="0.00"
-                      value={metrics.monthlyIncome || ""}
+                      value={metrics.freeMonthlyMoney || ""}
                       onChange={(e) =>
                         updateMetric(
-                          "monthlyIncome",
+                          "freeMonthlyMoney",
                           parseFloat(e.target.value) || 0,
                         )
                       }
                     />
+                    <Muted className="text-xs">
+                      Money left after taxes, rent and utilities
+                    </Muted>
                   </div>
                 </div>
               </CardContent>
@@ -272,7 +277,7 @@ export default function Home() {
                 {metrics.isReplacement && (
                   <MetricSlider
                     label="Upgrade Justification"
-                    hint="How much better is this compared to what you own?"
+                    hint="How much better is this compared to what you own? (0=not at all, 10=very much)"
                     value={metrics.upgradeJustification}
                     onChange={(value) =>
                       updateMetric("upgradeJustification", value)

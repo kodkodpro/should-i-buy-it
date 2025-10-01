@@ -22,7 +22,7 @@ import {
 const initialMetrics: PurchaseMetrics = {
   productName: "",
   price: 0,
-  monthlyIncome: 9_000,
+  freeMonthlyMoney: 0,
   discountPercentage: 0,
 
   // Core value metrics
