@@ -24,19 +24,19 @@ const initialMetrics: PurchaseMetrics = {
   price: 0,
   monthlyIncome: 9_000,
   discountPercentage: 0,
-  
+
   // Core value metrics
   utilityScore: 5,
   necessityScore: 5,
   longTermValue: 5,
   useFrequency: 5,
-  
+
   // Anti-impulsivity metrics
   waitingDays: 0,
   researchDepth: 0,
   impulseResistance: 5,
   hasUnusedSimilar: false,
-  
+
   // Replacement metrics
   isReplacement: false,
   upgradeJustification: 5,

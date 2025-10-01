@@ -92,7 +92,7 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         onClick={() => setCurrentId(calc.id)}
                         isActive={isActive}
-                        className="flex flex-col items-start gap-1 h-auto py-3"
+                        className="flex flex-col items-start gap-1 h-auto py-3 cursor-pointer"
                       >
                         <div className="flex items-center gap-2 w-full">
                           <ShoppingCart className="h-4 w-4 flex-shrink-0" />
@@ -101,7 +101,7 @@ export function AppSidebar() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between w-full gap-2 text-xs">
-                          <span className="text-muted-foreground">
+                          <span className="opacity-50">
                             {formatDate(calc.timestamp)}
                           </span>
                           <Badge
@@ -126,6 +126,7 @@ export function AppSidebar() {
           <Save className="mr-2 h-4 w-4" />
           {currentId ? "Update" : "Save"} Calculation
         </Button>
+
         <div className="flex gap-2">
           <Button
             onClick={handleReset}
@@ -136,6 +137,7 @@ export function AppSidebar() {
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset
           </Button>
+
           {currentId && (
             <Button
               onClick={handleDelete}

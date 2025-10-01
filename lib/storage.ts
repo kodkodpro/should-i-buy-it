@@ -11,7 +11,7 @@ const STORAGE_KEY = "should-i-buy-it-calculations"
 
 export function getSavedCalculations(): SavedCalculation[] {
   if (typeof window === "undefined") return []
-  
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return []
@@ -25,17 +25,17 @@ export function getSavedCalculations(): SavedCalculation[] {
 export function saveCalculation(
   metrics: PurchaseMetrics,
   score: number,
-  id?: string
+  id?: string,
 ): SavedCalculation {
   const calculations = getSavedCalculations()
-  
+
   const calculation: SavedCalculation = {
     id: id || crypto.randomUUID(),
     timestamp: Date.now(),
     metrics,
     score,
   }
-  
+
   // Update existing or add new
   const existingIndex = calculations.findIndex((c) => c.id === calculation.id)
   if (existingIndex >= 0) {
@@ -43,7 +43,7 @@ export function saveCalculation(
   } else {
     calculations.unshift(calculation)
   }
-  
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(calculations))
   return calculation
 }
@@ -58,4 +58,3 @@ export function getCalculationById(id: string): SavedCalculation | undefined {
   const calculations = getSavedCalculations()
   return calculations.find((c) => c.id === id)
 }
-

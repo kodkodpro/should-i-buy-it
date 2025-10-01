@@ -1,7 +1,15 @@
 "use client"
 
-import { Info } from "lucide-react"
+import {
+  Info,
+  MinusIcon,
+  PlusIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from "lucide-react"
+import pluralize from "pluralize"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -10,13 +18,18 @@ import { Slider } from "@/components/ui/slider"
 import { useCalculation } from "@/lib/calculation-context"
 import { H1, H3, Lead, Muted } from "@/lib/components/ui/typography"
 import { getAdvice } from "@/lib/purchase-calculator"
+import { formatDate } from "@/lib/utils"
 
 export default function Home() {
   const { metrics, updateMetric, score, recommendation } = useCalculation()
   const advice = getAdvice(metrics, score)
 
+  const coolingOffDate = new Date(
+    Date.now() + (7 - metrics.waitingDays) * 24 * 60 * 60 * 1000,
+  )
+
   return (
-    <div className="min-h-screen p-4 md:py-20 w-full">
+    <div className="min-h-screen p-4 pb-20 md:pt-12 md:pb-40 w-full">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 text-center">
@@ -106,7 +119,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Info className="h-5 w-5 text-warning" />
+                  <TriangleAlertIcon className="h-5 w-5 text-warning" />
                   Impulse Control Check
                 </CardTitle>
                 <Muted className="text-xs">
@@ -117,32 +130,71 @@ export default function Home() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="waitingDays">Days Since First Wanted</Label>
-                  <Input
-                    id="waitingDays"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="0"
-                    value={metrics.waitingDays || ""}
-                    onChange={(e) =>
-                      updateMetric("waitingDays", parseInt(e.target.value) || 0)
-                    }
-                  />
-                  {metrics.waitingDays < 7 && metrics.waitingDays >= 0 && (
-                    <div className="mt-2 p-3 rounded-md bg-warning/5 border border-warning/20">
-                      <Muted className="text-xs">
-                        ⏰ Cooling off period: Try waiting{" "}
-                        <strong>{7 - metrics.waitingDays} more day(s)</strong>.
-                        Come back on{" "}
-                        <strong>
-                          {new Date(
-                            Date.now() +
-                              (7 - metrics.waitingDays) * 24 * 60 * 60 * 1000,
-                          ).toLocaleDateString()}
-                        </strong>
-                      </Muted>
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Decrease days"
+                        onClick={() =>
+                          updateMetric(
+                            "waitingDays",
+                            Math.max(0, (metrics.waitingDays || 0) - 1),
+                          )
+                        }
+                        className="h-8 w-8"
+                      >
+                        <span className="sr-only">Decrease</span>
+                        <MinusIcon className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        id="waitingDays"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                        value={metrics.waitingDays || ""}
+                        onChange={(e) =>
+                          updateMetric(
+                            "waitingDays",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
+                        className="w-20 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Increase days"
+                        onClick={() =>
+                          updateMetric(
+                            "waitingDays",
+                            (metrics.waitingDays || 0) + 1,
+                          )
+                        }
+                        className="h-8 w-8"
+                      >
+                        <span className="sr-only">Increase</span>
+                        <PlusIcon className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
+
+                    {metrics.waitingDays < 7 && metrics.waitingDays >= 0 && (
+                      <div className="px-3 py-2 rounded-md bg-warning/5 border border-warning/20 lg:mt-0 mt-2 lg:ml-4 flex-1">
+                        <Muted className="text-xs">
+                          ⏰ Cooling off period: Try waiting{" "}
+                          <strong>
+                            {7 - metrics.waitingDays} more{" "}
+                            {pluralize("day", 7 - metrics.waitingDays)}
+                          </strong>
+                          . Come back on{" "}
+                          <strong>{formatDate(coolingOffDate)}</strong>
+                        </Muted>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <MetricSlider
@@ -196,7 +248,7 @@ export default function Home() {
             {/* Replacement Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Replacement Item?</CardTitle>
+                <CardTitle>Additional Questions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2 pt-2">
@@ -313,47 +365,21 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-
-                {/* <div className="space-y-2 pt-4 border-t">
-                  <H3 className="text-base">Metric Impact</H3>
-                  <Muted className="text-xs">
-                    How each factor influences your score
-                  </Muted>
-                  <div className="space-y-2 text-sm mt-3">
-                    <div className="flex items-center justify-between">
-                      <span>Waiting Period</span>
-                      <Badge variant="outline-danger">Highest Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Impulse Resistance</span>
-                      <Badge variant="outline-danger">Highest Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Necessity Factor</span>
-                      <Badge variant="outline-danger">High Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Research Depth</span>
-                      <Badge variant="outline-danger">High Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Utility / Value</span>
-                      <Badge variant="outline-warning">Medium Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Affordability</span>
-                      <Badge variant="outline-warning">Medium Impact</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Discount</span>
-                      <Badge variant="outline-success">Low Impact</Badge>
-                    </div>
-                  </div>
-                </div> */}
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
+
+      <div className="pt-16 md:pt-32 text-center leading-none">
+        <a
+          href="https://x.com/AndrewKodkod"
+          className="text-xs text-muted-foreground/75 hover:text-foreground hover:underline transition-colors"
+        >
+          Built with love for myself and for others by
+          <br />
+          Andrew Kodkod
+        </a>
       </div>
     </div>
   )

@@ -3,24 +3,26 @@
  * Helps reduce impulsive purchases by emphasizing deliberation over instant gratification
  */
 
+import pluralize from "pluralize"
+
 export interface PurchaseMetrics {
   productName: string
   price: number
   monthlyIncome: number
   discountPercentage: number
-  
+
   // Core value metrics
   utilityScore: number // 0-10: How much will this improve daily life?
   necessityScore: number // 0-10: Is this a want or need?
   longTermValue: number // 0-10: Will this provide value for months/years?
   useFrequency: number // 0-10: How often will you actually use this?
-  
+
   // Anti-impulsivity metrics (CRITICAL for ADHD)
   waitingDays: number // Days since first wanting this
   researchDepth: number // 0-10: How much research have you done?
   impulseResistance: number // 0-10: How deliberate does this feel? (0=very impulsive, 10=very planned)
   hasUnusedSimilar: boolean // Have I bought similar items that went unused?
-  
+
   // Optional: For replacements
   isReplacement: boolean
   upgradeJustification: number // 0-10: How much better than what you have?
@@ -33,19 +35,19 @@ export interface PurchaseMetrics {
 export const IMPACT_MULTIPLIERS = {
   // Financial responsibility
   affordability: 1.3,
-  
+
   // Core value (high impact)
   utility: 1.6,
   necessity: 1.8,
   longTermValue: 1.5,
   useFrequency: 1.4,
-  
+
   // Anti-impulsivity (CRITICAL - highest weights)
   waitingPeriod: 2.0, // Most important for ADHD
   researchDepth: 1.7,
   impulseResistance: 1.9,
   unusedSimilarPenalty: 1.5, // Heavy penalty for past unused purchases
-  
+
   // Lower priority
   discount: 0.4, // LOW - discounts trigger impulsivity!
   upgrade: 0.8,
@@ -59,16 +61,16 @@ export function calculateAffordability(
   monthlyIncome: number,
 ): number {
   if (monthlyIncome <= 0) return 0
-  
+
   const priceRatio = price / monthlyIncome
-  
+
   // Score based on percentage of monthly income
   if (priceRatio <= 0.01) return 10 // Less than 1%
   if (priceRatio <= 0.05) return 9 // 1-5%
-  if (priceRatio <= 0.10) return 7 // 5-10%
-  if (priceRatio <= 0.20) return 5 // 10-20%
-  if (priceRatio <= 0.30) return 3 // 20-30%
-  if (priceRatio <= 0.50) return 1 // 30-50%
+  if (priceRatio <= 0.1) return 7 // 5-10%
+  if (priceRatio <= 0.2) return 5 // 10-20%
+  if (priceRatio <= 0.3) return 3 // 20-30%
+  if (priceRatio <= 0.5) return 1 // 30-50%
   return 0
 }
 
@@ -130,19 +132,21 @@ export function calculatePurchaseScore(metrics: PurchaseMetrics): number {
   const impulseControlScore = calculateImpulseControl(impulseResistance)
 
   // Apply impact multipliers
-  const weightedAffordability = affordabilityScore * IMPACT_MULTIPLIERS.affordability
+  const weightedAffordability =
+    affordabilityScore * IMPACT_MULTIPLIERS.affordability
   const weightedUtility = utilityScore * IMPACT_MULTIPLIERS.utility
   const weightedNecessity = necessityScore * IMPACT_MULTIPLIERS.necessity
   const weightedLongTermValue = longTermValue * IMPACT_MULTIPLIERS.longTermValue
   const weightedUseFrequency = useFrequency * IMPACT_MULTIPLIERS.useFrequency
   const weightedWaiting = waitingScore * IMPACT_MULTIPLIERS.waitingPeriod
   const weightedResearch = researchDepth * IMPACT_MULTIPLIERS.researchDepth
-  const weightedImpulseControl = impulseControlScore * IMPACT_MULTIPLIERS.impulseResistance
+  const weightedImpulseControl =
+    impulseControlScore * IMPACT_MULTIPLIERS.impulseResistance
   const weightedDiscount = discountBenefit * IMPACT_MULTIPLIERS.discount
-  
+
   // Upgrade justification only counts if it's a replacement
-  const weightedUpgrade = isReplacement 
-    ? upgradeJustification * IMPACT_MULTIPLIERS.upgrade 
+  const weightedUpgrade = isReplacement
+    ? upgradeJustification * IMPACT_MULTIPLIERS.upgrade
     : 0
 
   // Heavy penalty if you have unused similar items (applies negative score)
@@ -244,7 +248,7 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "warning",
       emoji: "⏰",
-      text: `You've only waited ${metrics.waitingDays} day(s). Try waiting a full week.`,
+      text: `You've only waited ${metrics.waitingDays} ${pluralize("day", metrics.waitingDays)}. Try waiting a full week.`,
     })
   } else if (metrics.waitingDays >= 7) {
     advice.push({
