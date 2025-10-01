@@ -19,10 +19,25 @@ import {
   saveCalculation,
 } from "@/lib/storage"
 
-const initialMetrics: PurchaseMetrics = {
+const FREE_MONTHLY_MONEY_KEY = "free-monthly-money"
+
+// Load saved free monthly money from localStorage
+function getSavedFreeMonthlyMoney(): number {
+  if (typeof window === "undefined") return 0
+  const saved = localStorage.getItem(FREE_MONTHLY_MONEY_KEY)
+  return saved ? parseFloat(saved) : 0
+}
+
+// Save free monthly money to localStorage
+function saveFreeMonthlyMoney(amount: number) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(FREE_MONTHLY_MONEY_KEY, amount.toString())
+}
+
+const getInitialMetrics = (): PurchaseMetrics => ({
   productName: "",
   price: 0,
-  freeMonthlyMoney: 0,
+  freeMonthlyMoney: getSavedFreeMonthlyMoney(),
   discountPercentage: 0,
 
   // Core value metrics
@@ -33,14 +48,14 @@ const initialMetrics: PurchaseMetrics = {
 
   // Anti-impulsivity metrics
   waitingDays: 0,
-  researchDepth: 0,
+  researchDepth: 5,
   impulseResistance: 5,
   hasUnusedSimilar: false,
 
   // Replacement metrics
   isReplacement: false,
   upgradeJustification: 5,
-}
+})
 
 // Custom event to notify sidebar of storage changes
 function notifyStorageChange() {
@@ -68,7 +83,7 @@ const CalculationContext = createContext<CalculationContextType | undefined>(
 
 export function CalculationProvider({ children }: { children: ReactNode }) {
   const [currentId, setCurrentId] = useState<string | undefined>(undefined)
-  const [metrics, setMetrics] = useState<PurchaseMetrics>(initialMetrics)
+  const [metrics, setMetrics] = useState<PurchaseMetrics>(getInitialMetrics())
   const [score, setScore] = useState(0)
   const [recommendation, setRecommendation] = useState(getRecommendation(0))
 
@@ -80,9 +95,17 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
         setMetrics(calculation.metrics)
       }
     } else {
-      setMetrics(initialMetrics)
+      // Start new calculation but preserve freeMonthlyMoney
+      setMetrics(getInitialMetrics())
     }
   }, [currentId])
+
+  // Save freeMonthlyMoney to localStorage whenever it changes
+  useEffect(() => {
+    if (metrics.freeMonthlyMoney > 0) {
+      saveFreeMonthlyMoney(metrics.freeMonthlyMoney)
+    }
+  }, [metrics.freeMonthlyMoney])
 
   // Recalculate score when metrics change
   useEffect(() => {
@@ -123,7 +146,8 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
 
   const handleReset = () => {
     if (confirm("Are you sure you want to reset all fields?")) {
-      setMetrics(initialMetrics)
+      // Reset but preserve freeMonthlyMoney
+      setMetrics(getInitialMetrics())
       toast.info("Form reset", {
         description: "All fields have been reset to default values",
       })

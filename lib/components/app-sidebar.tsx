@@ -124,7 +124,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 space-y-2">
         <Button onClick={handleSave} size="sm" className="w-full">
           <Save className="mr-2 h-4 w-4" />
-          {currentId ? "Update" : "Save"} Calculation
+          {currentId ? "Update" : "Save"}
         </Button>
 
         <div className="flex gap-2">
