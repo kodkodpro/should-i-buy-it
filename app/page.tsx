@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  Info,
-  MinusIcon,
-  PlusIcon,
-  TriangleAlertIcon,
-  XIcon,
-} from "lucide-react"
+import { MinusIcon, PlusIcon, TriangleAlertIcon } from "lucide-react"
 import pluralize from "pluralize"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -158,7 +152,7 @@ export default function Home() {
                         onChange={(e) =>
                           updateMetric(
                             "waitingDays",
-                            parseInt(e.target.value) || 0,
+                            parseInt(e.target.value, 10) || 0,
                           )
                         }
                         className="w-20 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
