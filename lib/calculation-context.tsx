@@ -72,6 +72,7 @@ interface CalculationContextType {
   ) => void
   score: number
   recommendation: ReturnType<typeof getRecommendation>
+  handleNew: () => void
   handleSave: () => void
   handleReset: () => void
   handleDelete: () => void
@@ -121,6 +122,11 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
     setMetrics((prev) => ({ ...prev, [key]: value }))
   }
 
+  const handleNew = () => {
+    setCurrentId(undefined)
+    setMetrics(getInitialMetrics())
+  }
+
   const handleSave = () => {
     const saved = saveCalculation(metrics, score, currentId)
     setCurrentId(saved.id)
@@ -163,6 +169,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
         updateMetric,
         score,
         recommendation,
+        handleNew,
         handleSave,
         handleReset,
         handleDelete,

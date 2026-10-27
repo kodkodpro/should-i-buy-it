@@ -1,419 +1,466 @@
 "use client"
 
-import { MinusIcon, PlusIcon, TriangleAlertIcon } from "lucide-react"
-import pluralize from "pluralize"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
+import { useTheme } from "next-themes"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import { useCalculation } from "@/lib/calculation-context"
-import { H1, H3, Lead, Muted } from "@/lib/components/ui/typography"
 import { getAdvice } from "@/lib/purchase-calculator"
+import { getSavedCalculations, type SavedCalculation } from "@/lib/storage"
 import { formatDate } from "@/lib/utils"
 
 export default function Home() {
-  const { metrics, updateMetric, score, recommendation } = useCalculation()
+  const {
+    metrics,
+    updateMetric,
+    score,
+    recommendation,
+    currentId,
+    setCurrentId,
+    handleSave,
+    handleReset,
+    handleDelete,
+    handleNew,
+  } = useCalculation()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [pointerInteraction, setPointerInteraction] = useState(false)
+  useEffect(() => {
+    const onPointer = () => setPointerInteraction(true)
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        setPointerInteraction(false)
+      }
+    }
+    document.addEventListener("pointerdown", onPointer, true)
+    document.addEventListener("keydown", onKey, true)
+    return () => {
+      document.removeEventListener("pointerdown", onPointer, true)
+      document.removeEventListener("keydown", onKey, true)
+    }
+  }, [])
+  const [saved, setSaved] = useState<SavedCalculation[]>([])
+  useEffect(() => {
+    setMounted(true)
+    const load = () => setSaved(getSavedCalculations())
+    load()
+    window.addEventListener("storage-updated", load)
+    window.addEventListener("storage", load)
+    return () => {
+      window.removeEventListener("storage-updated", load)
+      window.removeEventListener("storage", load)
+    }
+  }, [])
   const advice = getAdvice(metrics, score)
-
   const coolingOffDate = new Date(
-    Date.now() + (7 - metrics.waitingDays) * 24 * 60 * 60 * 1000,
+    Date.now() + (7 - metrics.waitingDays) * 86400000,
   )
 
   return (
-    <div className="min-h-screen p-4 pb-20 md:pt-12 md:pb-40 w-full">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <header className="mb-8 text-center">
-          <H1 className="mb-2">Should I Buy It?</H1>
-          <Lead>
-            ADHD-Optimized purchase decisions based on deliberation, not
-            impulsivity
-          </Lead>
-        </header>
-
-        {/* Main Content */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Input Form */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Product Info Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="productName">Product Name</Label>
-                  <Input
-                    id="productName"
-                    placeholder="e.g., New Gaming Console"
-                    value={metrics.productName}
-                    onChange={(e) =>
-                      updateMetric("productName", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price after discount</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={metrics.price || ""}
-                      onChange={(e) =>
-                        updateMetric("price", parseFloat(e.target.value) || 0)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Discount (%)</Label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      placeholder="0"
-                      value={metrics.discountPercentage || ""}
-                      onChange={(e) =>
-                        updateMetric(
-                          "discountPercentage",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="freeMonthlyMoney">
-                      Free Monthly Money
-                    </Label>
-                    <Input
-                      id="freeMonthlyMoney"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={metrics.freeMonthlyMoney || ""}
-                      onChange={(e) =>
-                        updateMetric(
-                          "freeMonthlyMoney",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                    <Muted className="text-xs">
-                      Money left after taxes, rent and utilities
-                    </Muted>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Anti-Impulsivity Metrics Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TriangleAlertIcon className="h-5 w-5 text-warning" />
-                  Impulse Control Check
-                </CardTitle>
-                <Muted className="text-xs">
-                  These metrics are crucial for preventing ADHD impulsive
-                  purchases
-                </Muted>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="waitingDays">Days Since First Wanted</Label>
-                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label="Decrease days"
-                        onClick={() =>
-                          updateMetric(
-                            "waitingDays",
-                            Math.max(0, (metrics.waitingDays || 0) - 1),
-                          )
-                        }
-                        className="h-8 w-8"
-                      >
-                        <span className="sr-only">Decrease</span>
-                        <MinusIcon className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id="waitingDays"
-                        type="number"
-                        min="0"
-                        step="1"
-                        placeholder="0"
-                        value={metrics.waitingDays || ""}
-                        onChange={(e) =>
-                          updateMetric(
-                            "waitingDays",
-                            parseInt(e.target.value, 10) || 0,
-                          )
-                        }
-                        className="w-20 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label="Increase days"
-                        onClick={() =>
-                          updateMetric(
-                            "waitingDays",
-                            (metrics.waitingDays || 0) + 1,
-                          )
-                        }
-                        className="h-8 w-8"
-                      >
-                        <span className="sr-only">Increase</span>
-                        <PlusIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {metrics.waitingDays < 7 && metrics.waitingDays >= 0 && (
-                      <div className="px-3 py-2 rounded-md bg-warning/5 border border-warning/20 lg:mt-0 mt-2 lg:ml-4 flex-1">
-                        <Muted className="text-xs">
-                          ⏰ Cooling off period: Try waiting{" "}
-                          <strong>
-                            {7 - metrics.waitingDays} more{" "}
-                            {pluralize("day", 7 - metrics.waitingDays)}
-                          </strong>
-                          . Come back on{" "}
-                          <strong>{formatDate(coolingOffDate)}</strong>
-                        </Muted>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <MetricSlider
-                  label="Research Depth"
-                  hint="How much research have you done? (0=none, 10=extensive)"
-                  value={metrics.researchDepth}
-                  onChange={(value) => updateMetric("researchDepth", value)}
-                />
-                <MetricSlider
-                  label="Impulse Resistance"
-                  hint="How deliberate does this purchase feel? (0=very impulsive, 10=very planned)"
-                  value={metrics.impulseResistance}
-                  onChange={(value) => updateMetric("impulseResistance", value)}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Core Value Metrics Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Value Assessment</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <MetricSlider
-                  label="Utility / Life Improvement"
-                  hint="How much will this actually improve your daily life? (0=not at all, 10=very much)"
-                  value={metrics.utilityScore}
-                  onChange={(value) => updateMetric("utilityScore", value)}
-                />
-                <MetricSlider
-                  label="Long-term Value"
-                  hint="For how long will this provide value? (0=days, 10=years)"
-                  value={metrics.longTermValue}
-                  onChange={(value) => updateMetric("longTermValue", value)}
-                />
-                <MetricSlider
-                  label="Use Frequency"
-                  hint="How often will you actually use this? (0=rarely, 10=daily)"
-                  value={metrics.useFrequency}
-                  onChange={(value) => updateMetric("useFrequency", value)}
-                />
-                <MetricSlider
-                  label="Necessity Factor"
-                  hint="Is it a want or a need? (1=pure luxury, 10=essential)"
-                  value={metrics.necessityScore}
-                  onChange={(value) => updateMetric("necessityScore", value)}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Replacement Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Additional Questions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
-                    id="hasUnusedSimilar"
-                    checked={metrics.hasUnusedSimilar}
-                    onCheckedChange={(checked) =>
-                      updateMetric("hasUnusedSimilar", checked === true)
-                    }
-                  />
-                  <Label htmlFor="hasUnusedSimilar" className="cursor-pointer">
-                    I've bought similar items before that I never use
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isReplacement"
-                    checked={metrics.isReplacement}
-                    onCheckedChange={(checked) =>
-                      updateMetric("isReplacement", checked === true)
-                    }
-                  />
-                  <Label htmlFor="isReplacement" className="cursor-pointer">
-                    I'm replacing something I already own
-                  </Label>
-                </div>
-                {metrics.isReplacement && (
-                  <MetricSlider
-                    label="Upgrade Justification"
-                    hint="How much better is this compared to what you own? (0=not at all, 10=very much)"
-                    value={metrics.upgradeJustification}
-                    onChange={(value) =>
-                      updateMetric("upgradeJustification", value)
-                    }
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Results */}
-          <div className="space-y-6">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Decision Score</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-center space-y-4">
-                  <div>
-                    <div
-                      className={`text-7xl font-bold ${recommendation.colorClass}`}
-                    >
-                      {score}
-                    </div>
-                    <Muted>out of 100</Muted>
-                  </div>
-                  <Badge
-                    variant={recommendation.variant}
-                    className="text-lg px-4 py-2"
-                  >
-                    {recommendation.text}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2 pt-4 border-t">
-                  <H3 className="text-base">Interpretation</H3>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>80-100:</span>
-                      <span className="text-success font-medium">
-                        Go for it!
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>65-79:</span>
-                      <span className="text-info font-medium">
-                        Probably worth it
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>45-64:</span>
-                      <span className="text-warning font-medium">
-                        Wait & think more
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>0-44:</span>
-                      <span className="text-danger font-medium">Walk away</span>
-                    </div>
-                  </div>
-                </div>
-
-                {advice.length > 0 && (
-                  <div className="space-y-2 pt-4 border-t">
-                    <H3 className="text-base">Personalized Advice</H3>
-                    <div className="space-y-2">
-                      {advice.map((tip, index) => {
-                        const bgClass =
-                          tip.kind === "success"
-                            ? "bg-success/5"
-                            : tip.kind === "danger"
-                              ? "bg-danger/5"
-                              : "bg-warning/7"
-
-                        return (
-                          <div
-                            key={`${tip.emoji}-${index}`}
-                            className={`text-sm px-3 py-2.5 rounded-md font-medium ${bgClass}`}
-                          >
-                            {tip.emoji} {tip.text}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      <div className="pt-16 md:pt-32 text-center leading-none">
-        <a
-          href="https://x.com/AndrewKodkod"
-          className="text-xs text-muted-foreground/75 hover:text-foreground hover:underline transition-colors"
-        >
-          Built with love for myself and for others by
-          <br />
-          Andrew Kodkod
+    <div className="site-shell">
+      <a className="skip-link" href="#main">
+        Skip to calculator
+      </a>
+      <header className="site-header">
+        <a className="wordmark" href="https://kodkod.me">
+          <span>[</span> akodkod <span>]</span>
         </a>
-      </div>
+        <div className="header-links">
+          <a href="https://kodkod.me">← kodkod.me</a>
+          <label className="theme-label">
+            <span className="sr-only">Appearance</span>
+            <select
+              aria-label="Appearance"
+              data-pointer-interaction={pointerInteraction || undefined}
+              value={mounted ? theme : "system"}
+              onChange={(e) => setTheme(e.target.value)}
+            >
+              <option value="system">system</option>
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+            </select>
+          </label>
+        </div>
+      </header>
+      <main id="main">
+        <section className="hero">
+          <p className="eyebrow">A little pause before a purchase</p>
+          <h1>
+            Should I buy it?<span className="cursor">_</span>
+          </h1>
+          <p className="intro">
+            Think through the cost, the usefulness and the urge to buy.
+            <br className="desktop-break" /> Give yourself a moment to decide.
+          </p>
+        </section>
+        <div className="workspace-toolbar">
+          <button type="button" onClick={handleNew}>
+            + new calculation
+          </button>
+          <span>Saved on this device</span>
+        </div>
+        <details className="saved-list">
+          <summary>
+            Saved calculations <span>[ {saved.length} ]</span>
+          </summary>
+          {saved.length ? (
+            <ul>
+              {saved.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    aria-current={currentId === item.id ? "true" : undefined}
+                    onClick={() => setCurrentId(item.id)}
+                  >
+                    <span>{item.metrics.productName || "Unnamed product"}</span>
+                    <span>
+                      {item.score}/100 <span aria-hidden="true">↗</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No saved calculations yet. Save one to come back to it later.</p>
+          )}
+        </details>
+        <div className="calculator-layout">
+          <div className="questions">
+            <Section number="01" title="The purchase">
+              <Field label="What are you thinking of buying?" id="productName">
+                <input
+                  id="productName"
+                  placeholder="e.g. A new pair of headphones"
+                  value={metrics.productName}
+                  onChange={(e) => updateMetric("productName", e.target.value)}
+                />
+              </Field>
+              <div className="money-fields">
+                <Field label="Price after discount" id="price">
+                  <input
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={metrics.price || ""}
+                    onChange={(e) =>
+                      updateMetric("price", Math.max(0, Number(e.target.value)))
+                    }
+                  />
+                </Field>
+                <Field label="Discount (%)" id="discount">
+                  <input
+                    id="discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    value={metrics.discountPercentage || ""}
+                    onChange={(e) =>
+                      updateMetric(
+                        "discountPercentage",
+                        Math.min(100, Math.max(0, Number(e.target.value))),
+                      )
+                    }
+                  />
+                </Field>
+              </div>
+              <Field label="Money left each month" id="freeMonthlyMoney">
+                <input
+                  id="freeMonthlyMoney"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  aria-describedby="money-hint"
+                  value={metrics.freeMonthlyMoney || ""}
+                  onChange={(e) =>
+                    updateMetric(
+                      "freeMonthlyMoney",
+                      Math.max(0, Number(e.target.value)),
+                    )
+                  }
+                />
+                <p className="hint" id="money-hint">
+                  After taxes, rent and bills. Use the same currency as the
+                  price.
+                </p>
+              </Field>
+            </Section>
+            <Section number="02" title="Give it some time">
+              <Field label="How many days have you wanted it?" id="waitingDays">
+                <div className="stepper">
+                  <button
+                    type="button"
+                    aria-label="Decrease days"
+                    onClick={() =>
+                      updateMetric(
+                        "waitingDays",
+                        Math.max(0, metrics.waitingDays - 1),
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                  <input
+                    id="waitingDays"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={metrics.waitingDays}
+                    onChange={(e) =>
+                      updateMetric(
+                        "waitingDays",
+                        Math.max(0, Math.floor(Number(e.target.value))),
+                      )
+                    }
+                  />
+                  <button
+                    type="button"
+                    aria-label="Increase days"
+                    onClick={() =>
+                      updateMetric("waitingDays", metrics.waitingDays + 1)
+                    }
+                  >
+                    +
+                  </button>
+                  <span>days</span>
+                </div>
+              </Field>
+              {mounted && metrics.waitingDays < 7 && (
+                <p className="waiting-note">
+                  Try waiting {7 - metrics.waitingDays} more{" "}
+                  {metrics.waitingDays === 6 ? "day" : "days"}. Come back on{" "}
+                  {formatDate(coolingOffDate)}.
+                </p>
+              )}
+              <MetricSlider
+                label="How much research have you done?"
+                low="None yet"
+                high="Compared carefully"
+                value={metrics.researchDepth}
+                onChange={(v) => updateMetric("researchDepth", v)}
+              />
+              <MetricSlider
+                label="How planned does this feel?"
+                low="An impulse"
+                high="Thought it through"
+                value={metrics.impulseResistance}
+                onChange={(v) => updateMetric("impulseResistance", v)}
+              />
+            </Section>
+            <Section number="03" title="What will it add?">
+              <MetricSlider
+                label="Will it improve your daily life?"
+                low="Not at all"
+                high="A lot"
+                value={metrics.utilityScore}
+                onChange={(v) => updateMetric("utilityScore", v)}
+              />
+              <MetricSlider
+                label="How long will it be useful?"
+                low="Days"
+                high="Years"
+                value={metrics.longTermValue}
+                onChange={(v) => updateMetric("longTermValue", v)}
+              />
+              <MetricSlider
+                label="How often will you use it?"
+                low="Rarely"
+                high="Every day"
+                value={metrics.useFrequency}
+                onChange={(v) => updateMetric("useFrequency", v)}
+              />
+              <MetricSlider
+                label="Is it a want or a need?"
+                low="Pure luxury"
+                high="Essential"
+                value={metrics.necessityScore}
+                onChange={(v) => updateMetric("necessityScore", v)}
+              />
+            </Section>
+            <Section number="04" title="What you already own">
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={metrics.hasUnusedSimilar}
+                  onChange={(e) =>
+                    updateMetric("hasUnusedSimilar", e.target.checked)
+                  }
+                />
+                <span>I’ve bought similar things that I never use</span>
+              </label>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={metrics.isReplacement}
+                  onChange={(e) =>
+                    updateMetric("isReplacement", e.target.checked)
+                  }
+                />
+                <span>This replaces something I already own</span>
+              </label>
+              {metrics.isReplacement && (
+                <MetricSlider
+                  label="How much better is the replacement?"
+                  low="About the same"
+                  high="Much better"
+                  value={metrics.upgradeJustification}
+                  onChange={(v) => updateMetric("upgradeJustification", v)}
+                />
+              )}
+            </Section>
+          </div>
+          <aside className="results" aria-label="Your result">
+            <div className="result-inner">
+              <fieldset className="score-frame">
+                <legend>[ YOUR RESULT ]</legend>
+                <output aria-live="polite" aria-atomic="true">
+                  <span className="score">
+                    {score}
+                    <span>/ 100</span>
+                  </span>
+                  <span className="recommendation">{recommendation.text}</span>
+                </output>
+                <p className="hint">Updates as you answer</p>
+              </fieldset>
+              <div className="result-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={handleSave}
+                >
+                  {currentId ? "Update calculation" : "Save calculation"}{" "}
+                  <span aria-hidden="true">↓</span>
+                </button>
+                <div className="secondary-actions">
+                  <button type="button" onClick={handleReset}>
+                    reset fields
+                  </button>
+                  {currentId && (
+                    <button type="button" onClick={handleDelete}>
+                      delete saved
+                    </button>
+                  )}
+                </div>
+              </div>
+              <section className="score-guide">
+                <h2>How to read the score</h2>
+                <dl>
+                  <div>
+                    <dt>80–100</dt>
+                    <dd>Go for it</dd>
+                  </div>
+                  <div>
+                    <dt>65–79</dt>
+                    <dd>Probably worth it</dd>
+                  </div>
+                  <div>
+                    <dt>45–64</dt>
+                    <dd>Wait and think more</dd>
+                  </div>
+                  <div>
+                    <dt>00–44</dt>
+                    <dd>Walk away</dd>
+                  </div>
+                </dl>
+                <p className="hint">
+                  Waiting and planning carry more weight than a discount.
+                </p>
+              </section>
+              {advice.length > 0 && (
+                <section className="advice">
+                  <h2>A few things to consider</h2>
+                  <ul>
+                    {advice.map((tip) => (
+                      <li key={tip.text}>{tip.text}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          </aside>
+        </div>
+      </main>
+      <footer className="site-footer">
+        <a href="https://kodkod.me">Made by Andrew Kodkod</a>
+        <a href="#main">back to top ↑</a>
+      </footer>
     </div>
   )
 }
 
-interface MetricSliderProps {
+function Section({
+  number,
+  title,
+  children,
+}: {
+  number: string
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <section className="form-section">
+      <div className="section-heading">
+        <span>{number}</span>
+        <h2>{title}</h2>
+      </div>
+      <div className="section-content">{children}</div>
+    </section>
+  )
+}
+function Field({
+  id,
+  label,
+  children,
+}: {
+  id: string
   label: string
-  hint: string
+  children: ReactNode
+}) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+    </div>
+  )
+}
+function MetricSlider({
+  label,
+  low,
+  high,
+  value,
+  onChange,
+}: {
+  label: string
+  low: string
+  high: string
   value: number
   onChange: (value: number) => void
-}
-
-function MetricSlider({ label, hint, value, onChange }: MetricSliderProps) {
+}) {
+  const id = useId()
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-start">
-        <div className="space-y-1 flex-1">
-          <Label className="text-base">{label}</Label>
-          <Muted className="text-xs">{hint}</Muted>
-        </div>
-        <Badge
-          variant="secondary"
-          className="ml-4 text-lg min-w-[3rem] justify-center"
-        >
+    <div className="metric">
+      <div className="metric-heading">
+        <label htmlFor={id}>{label}</label>
+        <output htmlFor={id}>
           {value}
-        </Badge>
+          <span>/10</span>
+        </output>
       </div>
-      <Slider
-        value={[value]}
-        onValueChange={(values) => onChange(values[0])}
-        min={0}
-        max={10}
-        step={1}
-        className="w-full"
+      <input
+        id={id}
+        type="range"
+        min="0"
+        max="10"
+        step="1"
+        value={value}
+        aria-describedby={`${id}-scale`}
+        onChange={(e) => onChange(Number(e.target.value))}
       />
+      <div className="range-labels" id={`${id}-scale`}>
+        <span>0 · {low}</span>
+        <span>10 · {high}</span>
+      </div>
     </div>
   )
 }

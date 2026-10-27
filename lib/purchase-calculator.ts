@@ -245,7 +245,7 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "danger",
       emoji: "🚨",
-      text: "You just thought of this! Wait at least 24 hours before buying.",
+      text: "You first wanted this today. Give it at least 24 hours.",
     })
   } else if (metrics.waitingDays < 3) {
     advice.push({
@@ -257,7 +257,7 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "success",
       emoji: "✅",
-      text: `Great job waiting ${metrics.waitingDays} days! Your mind is clearer now.`,
+      text: `You’ve waited ${metrics.waitingDays} days. Do you still want it as much?`,
     })
   }
 
@@ -266,13 +266,13 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "warning",
       emoji: "📚",
-      text: "Do more research! Read reviews, compare alternatives, watch videos.",
+      text: "Read a few reviews and compare the alternatives.",
     })
   } else if (metrics.researchDepth >= 7) {
     advice.push({
       kind: "success",
       emoji: "✅",
-      text: "Good research! You've done your homework.",
+      text: "You’ve taken time to research it.",
     })
   }
 
@@ -281,13 +281,13 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "danger",
       emoji: "⚠️",
-      text: "This feels very impulsive. That's a red flag for ADHD purchases.",
+      text: "This feels impulsive. Give yourself more time before deciding.",
     })
   } else if (metrics.impulseResistance >= 7) {
     advice.push({
       kind: "success",
       emoji: "✅",
-      text: "This is a deliberate, planned decision. Good sign!",
+      text: "This feels like a planned purchase.",
     })
   }
 
@@ -306,13 +306,13 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "danger",
       emoji: "💰",
-      text: "This costs over 15% of your free monthly money. That's a major expense!",
+      text: "This costs over 15% of your free monthly money. That’s a sizeable part of your budget.",
     })
   } else if (priceRatio > 0.1 && priceRatio <= 0.15) {
     advice.push({
       kind: "warning",
       emoji: "💰",
-      text: "This costs over 10% of your free monthly money. Make sure it's worth it!",
+      text: "This costs over 10% of your free monthly money. Consider what else that money needs to cover.",
     })
   }
 
@@ -321,7 +321,7 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "danger",
       emoji: "🎣",
-      text: "Big discount + quick decision = common ADHD impulse trap. Wait!",
+      text: "A large discount can make a purchase feel urgent. Give it more time.",
     })
   }
 
@@ -339,7 +339,7 @@ export function getAdvice(metrics: PurchaseMetrics, score: number): Advice[] {
     advice.push({
       kind: "danger",
       emoji: "🚨",
-      text: "You have unused similar purchases! History suggests this may go unused too.",
+      text: "You already have similar things you don’t use. Would this be different?",
     })
   }
 
